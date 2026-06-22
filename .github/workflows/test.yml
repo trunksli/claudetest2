@@ -1,0 +1,20 @@
+name: CI
+
+# Runs pytest on every push and PR. This is the workflow whose FAILURE the loop
+# discovers. When you push the broken hello.py, this goes red.
+on:
+  push:
+  pull_request:
+
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+      - name: Install
+        run: pip install -e ".[dev]"
+      - name: Test
+        run: pytest -x --tb=short

@@ -1,0 +1,65 @@
+name: Loop — Daily Triage
+
+on:
+  # ~8am Pacific on weekdays (15:00 UTC). Change the time if you like.
+  schedule:
+    - cron: "0 15 * * 1-5"
+  # Manual trigger from the Actions tab, with an optional read-only dry run.
+  workflow_dispatch:
+    inputs:
+      dry_run:
+        description: "Dry run (triage only, no changes, no PRs)"
+        type: boolean
+        default: false
+
+jobs:
+  loop:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write        # create branches
+      pull-requests: write   # open draft PRs
+      issues: write          # apply labels
+
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+
+      - name: Install dependencies
+        run: pip install -e ".[dev]"
+
+      - name: Run the loop
+        uses: anthropics/claude-code-action@v1
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}   # lets the agent use the gh CLI
+        with:
+          anthropic_api_key: ${{ secrets.ANTHROPIC_API_KEY }}
+          github_token: ${{ secrets.GITHUB_TOKEN }}
+          claude_args: '--max-turns 30 --allowedTools "Read,Edit,Bash,Grep,Glob"'
+          prompt: |
+            Read CLAUDE.md fully before doing anything — it is your memory and rulebook.
+
+            1. Find pytest failures from the last 24 hours:
+               gh run list --limit 20 --json status,conclusion,name,headBranch,createdAt
+               Skip flaky tests (recently passed) and infra failures (network, secrets).
+               Skip any failure that already has an open PR labeled loop-proposed.
+
+            2. For up to 3 fixable failures, one at a time:
+               - Create a branch loop/fix-<slug>.
+               - Make the narrowest fix. Follow every rule in CLAUDE.md.
+               - Run: pytest -x --tb=short
+               - Delegate the diff to the verifier subagent.
+                 * PASS or PASS WITH NOTES -> open a DRAFT PR titled "[Loop] <fix>",
+                   labeled loop-proposed, with the verifier's report in the body.
+                 * FAIL -> open a DRAFT PR labeled loop-needs-human, body explaining
+                   the problem. Do not push speculative code.
+
+            3. Append one line to the Run Log in CLAUDE.md:
+               YYYY-MM-DD | N triaged | N PRs | N skipped | note
+               Add any new failure pattern to the Known Failure Patterns section.
+
+            ${{ inputs.dry_run == true && 'DRY RUN: do step 1 and report what you WOULD do. Make no changes, open no PRs, edit no files.' || '' }}

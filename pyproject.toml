@@ -1,0 +1,16 @@
+[build-system]
+requires = ["setuptools>=68"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "claudetest"
+version = "0.0.1"
+requires-python = ">=3.11"
+
+[project.optional-dependencies]
+dev = ["pytest"]
+
+# Flat layout: hello.py sits at the root. Tell setuptools exactly which module
+# to install so it doesn't get confused by other files at the top level.
+[tool.setuptools]
+py-modules = ["hello"]
