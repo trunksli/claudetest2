@@ -37,7 +37,19 @@ test_hello.py   # pytest checks
 
 <!-- Add patterns as the loop encounters them. Each entry prevents re-discovery. -->
 
+- **Collection error from `hello.py` syntax error.** `test_hello.py` does
+  `import hello`; any syntax error in `hello.py` (e.g. unbalanced parens)
+  makes the module fail to parse, so pytest reports `0 items / 1 error` and CI
+  goes red. Fix the syntax in `hello.py`; the test itself is fine.
+- **PR creation blocked for the Actions token.** The `github-actions[bot]`
+  token (the only credential available in this workflow) is denied
+  `createPullRequest` by repo/org policy: *"GitHub Actions is not permitted to
+  create or approve pull requests."* The loop can branch, push, and label, but
+  cannot open the PR. Human action: enable Settings → Actions → General →
+  "Allow GitHub Actions to create and approve pull requests", or supply a PAT.
+
 ## Run Log
 
 <!-- The loop appends one line per run. Do not edit by hand. -->
 <!-- FORMAT: YYYY-MM-DD | N triaged | N PRs | N skipped | note -->
+2026-06-22 | 1 triaged | 0 PRs | 2 skipped | Fixed hello.py syntax error (verifier PASS), branch loop/fix-hello-syntax-error pushed; PR blocked — Actions token denied createPullRequest. Skipped 2 "Loop — Daily Triage" workflow runs (not pytest code failures).
